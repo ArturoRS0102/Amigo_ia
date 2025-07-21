@@ -3,55 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corazón Roto AI - Un espacio para ti</title>
+    <title>Amigo IA - Un espacio para ti</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- Reset & Base Styles --- */
         :root {
-            --bg-color: #f0f4f8; /* Un fondo azul grisáceo muy claro */
-            --primary-color: #e0eafc; /* Azul pastel claro */
-            --secondary-color: #sde5e7; /* Verde menta muy pálido */
-            --user-bubble-bg: #d1e7dd; /* Verde pastel para el usuario */
-            --ai-bubble-bg: #f8d7da; /* Rosa pastel para la IA */
-            --text-color: #333;
+            --bg-color: #f7f9fc;
+            --container-bg: #ffffff;
             --header-bg: #ffffff;
-            --input-bg: #ffffff;
-            --button-bg: #4a90e2; /* Un azul más vibrante para el contraste */
-            --button-hover-bg: #357abd;
-            --border-color: #d1d9e6;
-            --shadow-color: rgba(0, 0, 0, 0.08);
+            --user-bubble-bg: #e0f0ff;
+            --user-bubble-text: #005a9e;
+            --ai-bubble-bg: #f1f3f5;
+            --ai-bubble-text: #343a40;
+            --text-color-primary: #212529;
+            --text-color-secondary: #6c757d;
+            --primary-accent: #007bff;
+            --primary-accent-hover: #0056b3;
+            --border-color: #e9ecef;
+            --shadow-color: rgba(0, 91, 190, 0.08);
+            --font-family: 'Inter', sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Mulish', sans-serif;
+            font-family: var(--font-family);
             background-color: var(--bg-color);
             margin: 0;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            color: var(--text-color);
+            color: var(--text-color-primary);
         }
 
-        /* --- Main Container --- */
         .chat-container {
             width: 100%;
-            max-width: 800px;
+            max-width: 750px;
             height: 95vh;
-            max-height: 1000px;
+            max-height: 800px;
             display: flex;
             flex-direction: column;
-            background-color: var(--header-bg);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px var(--shadow-color);
+            background-color: var(--container-bg);
+            border-radius: 24px;
+            box-shadow: 0 12px 40px var(--shadow-color);
             overflow: hidden;
-            margin: 2.5vh 0;
+            margin: 2.5vh 15px;
         }
 
-        @media (max-width: 850px) {
+        @media (max-width: 800px) {
             .chat-container {
                 height: 100vh;
                 max-height: none;
@@ -60,90 +63,107 @@
             }
         }
 
-        /* --- Header --- */
         .chat-header {
             display: flex;
             align-items: center;
-            padding: 15px 25px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            justify-content: space-between;
+            padding: 16px 24px;
+            background-color: var(--header-bg);
             border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        
+        .header-info {
+            display: flex;
+            align-items: center;
         }
 
         .logo {
-            font-size: 28px;
-            margin-right: 15px;
+            width: 40px;
+            height: 40px;
+            margin-right: 16px;
+            color: var(--primary-accent);
         }
 
         .header-title h1 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color-primary);
         }
 
         .header-title p {
             margin: 0;
             font-size: 14px;
-            opacity: 0.8;
+            color: var(--text-color-secondary);
         }
 
-        /* --- Disclaimer --- */
         .disclaimer {
-            padding: 12px 20px;
-            background-color: #fffbe6;
-            color: #8a6d3b;
+            padding: 10px 24px;
+            background-color: #fff9e6;
+            color: #594500;
             font-size: 13px;
             text-align: center;
-            border-bottom: 1px solid #f2e7c3;
+            border-bottom: 1px solid #ffecb3;
+            flex-shrink: 0;
         }
 
-        /* --- Chat Window --- */
         .chat-window {
             flex-grow: 1;
-            padding: 20px;
+            padding: 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            gap: 16px;
         }
 
         .message {
-            max-width: 75%;
+            max-width: 78%;
             padding: 12px 18px;
-            border-radius: 20px;
-            margin-bottom: 15px;
-            line-height: 1.5;
+            border-radius: 18px;
+            line-height: 1.6;
             word-wrap: break-word;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeIn 0.4s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .message.user {
             background-color: var(--user-bubble-bg);
+            color: var(--user-bubble-text);
             align-self: flex-end;
-            border-bottom-right-radius: 5px;
+            border-bottom-right-radius: 6px;
         }
 
         .message.ai {
             background-color: var(--ai-bubble-bg);
+            color: var(--ai-bubble-text);
             align-self: flex-start;
-            border-bottom-left-radius: 5px;
-        }
-        
-        .message.ai.initial {
-            background-color: #eef2f7;
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
+            border-bottom-left-radius: 6px;
         }
 
         .typing-indicator {
             display: flex;
             align-items: center;
             align-self: flex-start;
-            margin-bottom: 15px;
+            padding: 12px 18px;
+            background-color: var(--ai-bubble-bg);
+            border-radius: 18px;
+            border-bottom-left-radius: 6px;
         }
 
         .typing-indicator span {
-            height: 10px;
-            width: 10px;
-            margin: 0 3px;
-            background-color: #ccc;
+            height: 8px;
+            width: 8px;
+            margin: 0 2px;
+            background-color: #b0b8c2;
             border-radius: 50%;
             display: inline-block;
             animation: bounce 1.4s infinite ease-in-out both;
@@ -157,52 +177,72 @@
             40% { transform: scale(1.0); }
         }
 
-        /* --- Input Area --- */
         .chat-input-area {
             display: flex;
-            padding: 20px;
+            align-items: center;
+            padding: 16px 24px;
             border-top: 1px solid var(--border-color);
-            background-color: var(--bg-color);
+            background-color: var(--header-bg);
+            flex-shrink: 0;
         }
 
         #chat-input {
             flex-grow: 1;
             border: 1px solid var(--border-color);
-            border-radius: 25px;
-            padding: 12px 20px;
+            border-radius: 12px;
+            padding: 12px 16px;
             font-size: 16px;
-            font-family: 'Mulish', sans-serif;
-            margin-right: 10px;
-            transition: box-shadow 0.2s;
+            font-family: var(--font-family);
+            margin-right: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         #chat-input:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
         }
 
         #send-btn, #restart-btn {
             border: none;
-            background-color: var(--button-bg);
             color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
+            padding: 12px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-
-        #send-btn:hover, #restart-btn:hover {
-            background-color: var(--button-hover-bg);
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
+        #send-btn {
+            background-color: var(--primary-accent);
+            width: 48px;
+            height: 48px;
+        }
+
+        #send-btn:hover {
+            background-color: var(--primary-accent-hover);
+        }
+        
+        #send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #send-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
         #restart-btn {
-            background-color: #6c757d;
-            margin-left: auto;
+            background-color: #f1f3f5;
+            color: var(--text-color-secondary);
+            padding: 8px 16px;
         }
         #restart-btn:hover {
-            background-color: #5a6268;
+            background-color: #e9ecef;
         }
     </style>
 </head>
@@ -210,16 +250,18 @@
 
     <div class="chat-container">
         <div class="chat-header">
-            <span class="logo">💬</span>
-            <div class="header-title">
-                <h1>Corazón Roto AI</h1>
-                <p>Un espacio seguro para desahogarte</p>
+            <div class="header-info">
+                <svg class="logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5C21 16.7467 16.7467 21 11.5 21C6.25329 21 2 16.7467 2 11.5C2 6.25329 6.25329 2 11.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 12.01V12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 4"/></svg>
+                <div class="header-title">
+                    <h1>Amigo IA</h1>
+                    <p>Un espacio seguro para ti</p>
+                </div>
             </div>
             <button id="restart-btn" title="Reiniciar conversación">Reiniciar</button>
         </div>
 
         <div class="disclaimer">
-            <strong>Importante:</strong> No soy un terapeuta. Este es un espacio de contención emocional. Si necesitas ayuda profesional, por favor, busca un psicólogo.
+            <strong>Recuerda:</strong> No soy un terapeuta. Este es un espacio de contención. Si necesitas ayuda profesional, busca a un psicólogo.
         </div>
 
         <div class="chat-window" id="chat-window">
@@ -228,7 +270,9 @@
 
         <div class="chat-input-area">
             <input type="text" id="chat-input" placeholder="Escribe lo que sientes..." autocomplete="off">
-            <button id="send-btn">Enviar</button>
+            <button id="send-btn" title="Enviar mensaje">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
     </div>
 
@@ -241,16 +285,14 @@
             
             let conversationHistory = [];
 
-            // Function to add a message to the chat window
-            function addMessage(text, sender, type = '') {
+            function addMessage(text, sender) {
                 const messageElement = document.createElement('div');
-                messageElement.classList.add('message', sender, type);
+                messageElement.classList.add('message', sender);
                 messageElement.textContent = text;
                 chatWindow.appendChild(messageElement);
                 chatWindow.scrollTop = chatWindow.scrollHeight;
             }
 
-            // Function to show/hide typing indicator
             function showTypingIndicator(show) {
                 let indicator = document.getElementById('typing-indicator');
                 if (show) {
@@ -269,7 +311,6 @@
                 }
             }
 
-            // Function to handle sending a message
             async function sendMessage() {
                 const messageText = chatInput.value.trim();
                 if (messageText === '') return;
@@ -280,7 +321,6 @@
                 sendBtn.disabled = true;
                 showTypingIndicator(true);
 
-                // Add user message to history
                 conversationHistory.push({ role: 'user', content: messageText });
 
                 try {
@@ -299,7 +339,6 @@
                     const data = await response.json();
                     const aiResponse = data.reply;
 
-                    // Add AI response to history
                     conversationHistory.push({ role: 'assistant', content: aiResponse });
                     
                     showTypingIndicator(false);
@@ -308,7 +347,7 @@
                 } catch (error) {
                     console.error('Error fetching AI response:', error);
                     showTypingIndicator(false);
-                    addMessage('Lo siento, algo salió mal y no puedo responder en este momento. Por favor, intenta de nuevo más tarde.', 'ai');
+                    addMessage('Lo siento, algo salió mal y no puedo responder ahora. Por favor, intenta de nuevo más tarde.', 'ai');
                 } finally {
                     chatInput.disabled = false;
                     sendBtn.disabled = false;
@@ -316,27 +355,25 @@
                 }
             }
             
-            // Function to start a new conversation
             function startNewConversation() {
                 chatWindow.innerHTML = '';
                 conversationHistory = [];
-                addMessage('Hola, estoy aquí para escucharte. Puedes contarme lo que necesites, este es un espacio seguro para ti.', 'ai', 'initial');
-                addMessage('Recuerda que puedes escribir libremente, sin juicios. ¿Cómo te sientes hoy?', 'ai', 'initial');
+                addMessage('Hola, soy tu Amigo IA. Estoy aquí para escucharte en un espacio seguro y sin juicios.', 'ai');
+                addMessage('¿Cómo te sientes hoy?', 'ai');
                 chatInput.disabled = false;
                 sendBtn.disabled = false;
                 chatInput.focus();
             }
 
-            // Event Listeners
             sendBtn.addEventListener('click', sendMessage);
             chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
                     sendMessage();
                 }
             });
             restartBtn.addEventListener('click', startNewConversation);
 
-            // Initial message
             startNewConversation();
         });
     </script>
