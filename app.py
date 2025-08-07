@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 import tempfile
 
 # Cargar variables de entorno
-t_load = load_dotenv()
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -43,7 +43,6 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Gestión de conversación solo por texto."""
     data = request.get_json(silent=True) or {}
     history = data.get('history')
     if not history:
@@ -52,8 +51,11 @@ def chat():
     messages = [{'role': 'system', 'content': SYSTEM_PROMPT_TEXT}] + history
     try:
         response = client.chat.completions.create(
-            model="gpt-4o", messages=messages,
-            temperature=0.7, max_tokens=200, top_p=1
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=200,
+            top_p=1
         )
         reply = response.choices[0].message.content.strip()
         return jsonify({'reply': reply})
@@ -67,7 +69,6 @@ def chat():
 
 @app.route('/audio', methods=['POST'])
 def audio():
-    """Gestión de conversación mediante nota de voz."""
     if 'audio' not in request.files:
         return jsonify({'error': 'No se envió audio.'}), 400
     audio_file = request.files['audio']
@@ -78,20 +79,22 @@ def audio():
         tmp_path = tmp.name
 
     try:
-        # Transcripción con Whisper
         with open(tmp_path, 'rb') as f:
             transcription = client.audio.transcriptions.create(
-                model="whisper-1", file=f
+                model="whisper-1",
+                file=f
             )
         text = transcription.text
 
-        # Conversación usando prompt de voz+texto
         history = [{'role': 'user', 'content': text}]
         messages = [{'role': 'system', 'content': SYSTEM_PROMPT_VOZ}] + history
 
         response = client.chat.completions.create(
-            model="gpt-4o", messages=messages,
-            temperature=0.7, max_tokens=200, top_p=1
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=200,
+            top_p=1
         )
         reply = response.choices[0].message.content.strip()
 
