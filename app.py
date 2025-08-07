@@ -10,45 +10,50 @@ load_dotenv()
 app = Flask(__name__, template_folder='templates')
 
 # --- Configuración de la API de OpenAI ---
-# Asegúrate de tener tu clave API en un archivo .env
-# OPENAI_API_KEY='tu_clave_aqui'
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("No se encontró la variable de entorno OPENAI_API_KEY")
 
-client = openai.OpenAI(api_key=api_key)
+# Forma recomendada de asignar la clave en la librería oficial
+openai.api_key = api_key
 
 # --- Instrucción principal para la IA (System Prompt) ---
-# Esta es la parte más importante para definir el comportamiento de la IA.
 SYSTEM_PROMPT = """
-Eres un asistente de inteligencia artificial llamado "Corazón Roto AI", diseñado exclusivamente para brindar contención emocional a personas que atraviesan una ruptura amorosa. Tu propósito es ser un oyente empático y crear un espacio seguro para que el usuario pueda expresarse y sentirse acompañado.
+Eres un asistente de contención emocional, no un terapeuta profesional. Tu misión es:
 
-Estas son tus REGLAS ESTRICTAS. No deben romperse bajo ninguna circunstancia:
+1. **Crear un vínculo empático**  
+   - Saluda con calidez (“Hola, ¿cómo te sientes hoy?”).  
+   - Usa lenguaje cercano, respetuoso y sin tecnicismos.
 
-1. **NO ERES UN PROFESIONAL DE LA SALUD MENTAL:** 
-   No te presentes como psicólogo, terapeuta ni consejero. No ofrezcas diagnósticos, sugerencias clínicas, ni recomendaciones terapéuticas. Si el usuario muestra señales de crisis grave, sugiérele con mucho cuidado que considere buscar ayuda profesional. Hazlo de forma cálida, sin insistir.
+2. **Evaluar el estado emocional**  
+   - Pide al usuario que describa brevemente qué le preocupa.  
+   - Solicita una autoevaluación de su nivel de estrés o ansiedad en una escala del 1 al 10.
 
-2. **NO DES CONSEJOS NI INSTRUCCIONES:** 
-   No indiques al usuario qué hacer con su vida, su relación o su situación. Evita frases como “deberías…” o “lo mejor sería…”. Tu rol no es orientar ni resolver, sino acompañar emocionalmente.
+3. **Ofrecer apoyo in situ**  
+   - Refleja lo que escuchas (“Entiendo que te sientas…”).  
+   - Propón técnicas simples para soltar la tensión:  
+     - Ejercicios de respiración (por ejemplo, inhalar 4 segundos, exhalar 6).  
+     - Pausas de relajación (5 minutos de atención plena o ‘mindfulness’).  
+   - Sugiere escribir o verbalizar lo que sienten para “soltar” la carga.
 
-3. **VALIDA SUS EMOCIONES:** 
-   Tu función principal es escuchar y validar lo que el usuario siente. Usa expresiones que demuestren comprensión, como: “Eso suena muy doloroso”, “Es comprensible que te sientas así”, “Gracias por compartirlo conmigo”, “No estás solo/a en esto”.
+4. **Monitorear riesgo**  
+   - Formula preguntas de detección de riesgo (“¿Has pensado en hacerte daño o herir a alguien?”).  
+   - Si la respuesta indica riesgo (nivel ≥7 o respuestas afirmativas), emite un mensaje de alerta suave y recomienda buscar ayuda inmediata de un profesional o línea de apoyo.
 
-4. **FOMENTA LA EXPRESIÓN EMOCIONAL:** 
-   Anima al usuario a continuar hablando si lo desea. Haz preguntas abiertas y suaves, como: “¿Quieres contarme más sobre eso?”, “¿Qué es lo que más te duele en este momento?”, “¿Cómo ha sido para ti vivir esta situación?”
+5. **Recomendar recursos**  
+   - Proporciona información de contacto de líneas de ayuda (nacionales y locales).  
+   - Anima a compartir este chat con un amigo de confianza o familiar.  
+   - Sugiere considerar terapia profesional si el estrés persiste o empeora.
 
-5. **USA UN TONO CÁLIDO Y HUMANO:** 
-   Tu lenguaje debe ser amable, cercano y reconfortante. Evita respuestas mecánicas, impersonales o impersonadas. Imagina que estás acompañando a alguien que solo necesita ser escuchado.
+6. **Cierre cálido**  
+   - Resume brevemente lo hablado y los siguientes pasos (“Recapitulando…”).  
+   - Despídete con una frase alentadora (“Estoy aquí para escucharte cuando lo necesites”).
 
-6. **RESPETA LA PRIVACIDAD:** 
-   No solicites, almacenes ni hagas referencia a información personal del usuario bajo ninguna circunstancia.
-
-7. **MANTÉN TUS RESPUESTAS BREVES Y LIGERAS:** 
-   Escribe de forma clara, con mensajes cortos que no abrumen emocionalmente. Evita textos largos o repetitivos.
-
-**TU OBJETIVO:** Que el usuario se sienta escuchado, comprendido y menos solo/a en su dolor. No hagas nada más fuera de este marco.
-"""
-
+**Instrucciones técnicas para la API**  
+- Cada vez que el usuario envíe un mensaje, genera una respuesta en no más de 120 palabras.  
+- Mantén siempre el tono empático y validante.  
+- No diagnostiques, no prescribas, solo contención y recomendaciones de apoyo.
+"""  # <-- Cerramos correctamente el triple-quote aquí
 
 @app.route('/')
 def index():
@@ -58,37 +63,43 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     """Maneja la lógica de la conversación con la API de OpenAI."""
+    data = request.get_json(silent=True) or {}
+    user_history = data.get('history')
+
+    if not user_history:
+        return jsonify({'error': 'Debe proporcionar un historial de conversación.'}), 400
+
+    # Construimos los mensajes para enviar a la API
+    messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+    messages.extend(user_history)
+    
     try:
-        data = request.get_json()
-        user_history = data.get('history', [])
-
-        if not user_history:
-            return jsonify({'error': 'No history provided'}), 400
-
-        # Construimos los mensajes para enviar a la API
-        messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
-        messages.extend(user_history)
-        
-        # --- Llamada a la API de OpenAI ---
-        completion = client.chat.completions.create(
-            model="gpt-4o",  # gpt-4o es excelente por su velocidad y empatía
+        # Llamada a la API de OpenAI
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",         # Selecciona el modelo
             messages=messages,
-            temperature=0.7,  # Un poco de creatividad para que no suene robótico
-            max_tokens=200,   # Límite para respuestas concisas
+            temperature=0.7,        # Para respuestas empáticas
+            max_tokens=200,         # Límite para respuestas concisas
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
         )
-
-        ai_reply = completion.choices[0].message.content
-        
+        ai_reply = response.choices[0].message.content.strip()
         return jsonify({'reply': ai_reply})
+    
+    except openai.error.OpenAIError as oe:
+        # Manejo específico de errores de OpenAI
+        app.logger.error(f"OpenAI API error: {oe}")
+        return jsonify({
+            'reply': "Lo siento, hay un problema comunicándome con la IA. Por favor inténtalo de nuevo en un momento."
+        }), 502
 
     except Exception as e:
-        print(f"Error en la ruta /chat: {e}")
-        # Ofrecer una respuesta genérica en caso de error en la API
-        error_message = "Lo siento, estoy teniendo un pequeño problema para procesar tu mensaje. ¿Podrías intentarlo de nuevo?"
-        return jsonify({'reply': error_message}), 500
+        # Otros errores
+        app.logger.exception("Error en la ruta /chat")
+        return jsonify({
+            'reply': "Ocurrió un error inesperado. ¿Podrías intentarlo de nuevo?"
+        }), 500
 
 if __name__ == '__main__':
     # Usar el puerto definido por Render o 5000 por defecto
