@@ -1,58 +1,25 @@
-# app.py
 import os
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
+from werkzeug.utils import secure_filename
+import tempfile
 
-# Cargar variables de entorno
-load_dotenv()
+# Cargar variables de entorno\load_dotenv()
+app = Flask(__name__)
 
-app = Flask(__name__, template_folder='templates')
-
-# --- Configuración de la API de OpenAI ---
+# Configuración de OpenAI
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("No se encontró la variable de entorno OPENAI_API_KEY")
-
-# Instanciar el cliente con la nueva librería openai>=1.0.0
 client = OpenAI(api_key=api_key)
 
-# --- System Prompt ---
-SYSTEM_PROMPT = """
-Eres un asistente de contención emocional, no un terapeuta profesional. Tu misión es:
-
-1. **Crear un vínculo empático**  
-   - Saluda con calidez (“Hola, ¿cómo te sientes hoy?”).  
-   - Usa lenguaje cercano, respetuoso y sin tecnicismos.
-
-2. **Evaluar el estado emocional**  
-   - Pide al usuario que describa brevemente qué le preocupa.  
-   - Solicita una autoevaluación de su nivel de estrés o ansiedad en una escala del 1 al 10.
-
-3. **Ofrecer apoyo in situ**  
-   - Refleja lo que escuchas (“Entiendo que te sientas…”).  
-   - Propón técnicas simples para soltar la tensión:  
-     - Ejercicios de respiración (por ejemplo, inhalar 4 segundos, exhalar 6).  
-     - Pausas de relajación (5 minutos de atención plena o ‘mindfulness’).  
-   - Sugiere escribir o verbalizar lo que sienten para “soltar” la carga.
-
-4. **Monitorear riesgo**  
-   - Formula preguntas de detección de riesgo (“¿Has pensado en hacerte daño o herir a alguien?”).  
-   - Si la respuesta indica riesgo (nivel ≥7 o respuestas afirmativas), emite un mensaje de alerta suave y recomienda buscar ayuda inmediata de un profesional o línea de apoyo.
-
-5. **Recomendar recursos**  
-   - Proporciona información de contacto de líneas de ayuda (nacionales y locales).  
-   - Anima a compartir este chat con un amigo de confianza o familiar.  
-   - Sugiere considerar terapia profesional si el estrés persiste o empeora.
-
-6. **Cierre cálido**  
-   - Resume brevemente lo hablado y los siguientes pasos (“Recapitulando…”).  
-   - Despídete con una frase alentadora (“Estoy aquí para escucharte cuando lo necesites”).
-
-**Instrucciones técnicas para la API**  
-- Cada vez que el usuario envíe un mensaje, genera una respuesta en no más de 120 palabras.  
-- Mantén siempre el tono empático y validante.  
-- No diagnostiques, no prescribas, solo contención y recomendaciones de apoyo.
+# System Prompt extendido para texto y voz
+SYSTEM_PROMPT_VOZ = """
+Eres un asistente de contención emocional. Analiza tanto el contenido del usuario como las señales emocionales de su voz.
+1. Transcribe el audio usando Whisper.
+2. Infier e indirectamente su nivel de angustia basándote en texto y características de voz.
+3. Formula preguntas abiertas, ofrece técnicas de contención y evalúa riesgo según el tono y contenido.
 """
 
 @app.route('/')
@@ -64,35 +31,61 @@ def chat():
     data = request.get_json(silent=True) or {}
     history = data.get('history')
     if not history:
-        return jsonify({'error': 'Debe proporcionar un historial de conversación.'}), 400
+        return jsonify({'error': 'Debe proporcionar historial.'}), 400
 
-    messages = [{'role': 'system', 'content': SYSTEM_PROMPT}] + history
-
+    messages = [{'role': 'system', 'content': SYSTEM_PROMPT_VOZ}] + history
     try:
-        # Usamos la nueva interfaz client.chat.completions.create
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             temperature=0.7,
             max_tokens=200,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
+            top_p=1
         )
         reply = response.choices[0].message.content.strip()
         return jsonify({'reply': reply})
-
     except OpenAIError as oe:
         app.logger.error(f"OpenAI API error: {oe}")
-        return jsonify({
-            'reply': "Lo siento, hay un problema comunicándome con la IA. Por favor inténtalo de nuevo más tarde."
-        }), 502
-
+        return jsonify({'reply': 'Error comunicando con IA.'}), 502
     except Exception as e:
-        app.logger.exception("Error en la ruta /chat")
-        return jsonify({
-            'reply': "Ocurrió un error inesperado. ¿Podrías intentarlo de nuevo?"
-        }), 500
+        app.logger.exception("Error en /chat")
+        return jsonify({'reply': 'Error inesperado.'}), 500
+
+@app.route('/audio', methods=['POST'])
+def audio():
+    # Recibe archivo de audio
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No se envió audio.'}), 400
+    audio_file = request.files['audio']
+    filename = secure_filename(audio_file.filename)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        audio_file.save(tmp.name)
+        # Transcripción con Whisper
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=tmp.name
+        )
+    text = transcription.text
+
+    # Preparar historia inicial con transcripción
+    history = [{'role': 'user', 'content': text}]
+    messages = [{'role': 'system', 'content': SYSTEM_PROMPT_VOZ}] + history
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=200,
+            top_p=1
+        )
+        reply = response.choices[0].message.content.strip()
+        return jsonify({'transcript': text, 'reply': reply})
+    except OpenAIError as oe:
+        app.logger.error(f"OpenAI audio API error: {oe}")
+        return jsonify({'reply': 'Error comunicando con IA.'}), 502
+    except Exception as e:
+        app.logger.exception("Error en /audio")
+        return jsonify({'reply': 'Error inesperado.'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
